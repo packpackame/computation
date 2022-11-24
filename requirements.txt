@@ -1,7 +1,11 @@
-torch==1.10
+torch
 pillow
 scikit-build
 opencv-python
 numpy
+pydantic
+fastapi
 einops
+uvicorn
 tqdm
+python-multipart

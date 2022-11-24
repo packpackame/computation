@@ -22,30 +22,6 @@ def read_image(image_path):
     return image
 
 
-def visualize(image, pred, offset=5, original_size=True, inline=3):
-    N_variants = pred.shape[0]
-    if not original_size:
-        width = 1024
-        height = int(image.shape[0] / image.shape[1] * width)
-        image = cv2.resize(image, (width, height))
-    gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
-    images = [Image.fromarray(image)]
-    for i in range(N_variants):
-        imgc = pred[i]
-        imgc = np.moveaxis(imgc, 0, 2).astype('uint8')
-        imgc = resize_colorized(imgc, gray)
-        images.append(Image.fromarray(imgc))
-
-    chunks = [images[x:x + inline] for x in range(0, len(images), inline)]
-
-    im_line = []
-    for line in chunks:
-        im_line.append(concat_v(line, offset=offset))
-    new_im = concat_h(im_line, offset=offset)
-
-    return new_im
-
-
 def save_predictions(image, pred, save_path, name):
     gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
     N_variants = pred.shape[0]
@@ -79,6 +55,30 @@ class Artist:
         pred = (pred + 1) * 255 / 2
         pred_steps = (pred_steps + 1) * 255 / 2
         return image, pred.cpu().numpy(), pred_steps.cpu().numpy()
+
+    @staticmethod
+    def visualize(image, pred, offset=5, original_size=True, inline=3):
+        N_variants = pred.shape[0]
+        if not original_size:
+            width = 1024
+            height = int(image.shape[0] / image.shape[1] * width)
+            image = cv2.resize(image, (width, height))
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
+        images = [Image.fromarray(image)]
+        for i in range(N_variants):
+            imgc = pred[i]
+            imgc = np.moveaxis(imgc, 0, 2).astype('uint8')
+            imgc = resize_colorized(imgc, gray)
+            images.append(Image.fromarray(imgc))
+
+        chunks = [images[x:x + inline] for x in range(0, len(images), inline)]
+
+        im_line = []
+        for line in chunks:
+            im_line.append(concat_v(line, offset=offset))
+        new_im = concat_h(im_line, offset=offset)
+
+        return new_im
 
 
 def concat_v(images, offset=5):
