@@ -34,13 +34,19 @@ def colorize(
     finally:
         img_file.file.close()
 
-    image, prediction, prediction_step = artist.colorize(img_filename, 5)
-    result_image = artist.visualize(image, prediction, original_size=False, inline=3)
+    image, prediction = artist.colorize(img_filename, 3)
+    results = artist.prepare_results(image, prediction)
+    # result_image = artist.visualize(image, prediction, original_size=False, inline=3)
 
-    buffered = BytesIO()
-    result_image.save(buffered, format="JPEG")
-    img_str = base64.b64encode(buffered.getvalue())
+    for name, image in results.items():
+        buffered = BytesIO()
+        image.save(buffered, format="JPEG")
+        img_str = base64.b64encode(buffered.getvalue())
+        results[f'{name}_str'] = img_str
 
     return ColorizedImage(
-        image=img_str
+        image_original=results['image_original_str'],
+        image_colorized_v1=results['image_colorized_v1_str'],
+        image_colorized_v2=results['image_colorized_v2_str'],
+        image_colorized_v3=results['image_colorized_v3_str']
     )
