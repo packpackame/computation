@@ -51,10 +51,20 @@ class Artist:
         image = read_image(image_path)
         gray = self.preprocess_image(image)
         gray = torch.cat([gray] * N_variants, dim=0)
-        pred, pred_steps = self.model.restoration(gray.to(self.device), sample_num=4)
+        pred, _ = self.model.restoration(gray.to(self.device), sample_num=4)
         pred = (pred + 1) * 255 / 2
-        pred_steps = (pred_steps + 1) * 255 / 2
-        return image, pred.cpu().numpy(), pred_steps.cpu().numpy()
+        pred = np.moveaxis(pred.cpu().numpy(), 1, 3).astype('uint8')
+        return image, pred
+
+    @staticmethod
+    def prepare_results(image, pred):
+        results = {'image_original': image}
+        N_variants = pred.shape[0]
+        gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
+        for i in range(N_variants):
+            imgc = resize_colorized(pred[i], gray)
+            results[f'image_colorized_v{i+1}'] = imgc
+        return results
 
     @staticmethod
     def visualize(image, pred, offset=5, original_size=True, inline=3):
