@@ -12,6 +12,7 @@ RUN pip3 install -U pip
 
 COPY . .
 
+RUN pip3 install --upgrade pip setuptools wheel
 RUN pip3 install -r requirements.txt
 
 CMD ["python3", "main.py"]

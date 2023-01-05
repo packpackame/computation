@@ -1,5 +1,6 @@
 from pydantic import BaseModel
+from typing import List
 
 
 class ColorizedImage(BaseModel):
-    image: str
+    images: List[str]

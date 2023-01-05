@@ -1,7 +1,7 @@
 torch
 pillow
 scikit-build
-opencv-python
+opencv-python==4.5.3.56
 numpy
 pydantic
 fastapi

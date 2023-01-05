@@ -26,7 +26,9 @@ def colorize(
 
     try:
         contents = img_file.file.read()
-        img_filename = f"{int(datetime.now(timezone.utc).timestamp() * 10 ** 6)}.jpg"
+        current_timestamp = int(datetime.now(timezone.utc).timestamp() * 10 ** 6)
+
+        img_filename = f"{current_timestamp}.jpg"
         with open(img_filename, 'wb') as f:
             f.write(contents)
     except Exception:
@@ -34,13 +36,20 @@ def colorize(
     finally:
         img_file.file.close()
 
-    image, prediction, prediction_step = artist.colorize(img_filename, 5)
-    result_image = artist.visualize(image, prediction, original_size=False, inline=3)
+    _, colorized_images, _ = artist.colorize(img_filename, 3)
 
-    buffered = BytesIO()
-    result_image.save(buffered, format="JPEG")
-    img_str = base64.b64encode(buffered.getvalue())
+    # result_image = artist.visualize(image, prediction, original_size=False, inline=3)
+
+    image_strings = []
+
+    for img_array in colorized_images:
+        colorized_image = Image.fromarray(img_array)
+
+        buffered = BytesIO()
+        colorized_image.save(buffered, format="JPEG")
+        colorized_image_string = base64.b64encode(buffered.getvalue())
+        image_strings.append(colorized_image_string)
 
     return ColorizedImage(
-        image=img_str
+        images=image_strings
     )
