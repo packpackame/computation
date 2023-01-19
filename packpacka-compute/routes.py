@@ -1,7 +1,9 @@
 import base64
 from datetime import datetime, timezone
+import numpy as np
 from fastapi import APIRouter, Depends, File, UploadFile
 from io import BytesIO
+from PIL import Image
 import torch
 
 from model.inference import Artist
@@ -17,6 +19,17 @@ def root():
     return {"version": "0.0.1"}
 
 
+def __img_array_to_b64string(image: np.ndarray) -> str:
+    image = Image.fromarray(image)
+
+    if image.mode != 'RGB':
+        image = image.convert('RGB')
+
+    buffered = BytesIO()
+    image.save(buffered, format="JPEG")
+    return base64.b64encode(buffered.getvalue())
+
+
 @route.post("/colorize/", response_model=ColorizedImage)
 def colorize(
         img_file: UploadFile = File(...),
@@ -26,7 +39,9 @@ def colorize(
 
     try:
         contents = img_file.file.read()
-        img_filename = f"{int(datetime.now(timezone.utc).timestamp() * 10 ** 6)}.jpg"
+        current_timestamp = int(datetime.now(timezone.utc).timestamp() * 10 ** 6)
+
+        img_filename = f"{current_timestamp}.jpg"
         with open(img_filename, 'wb') as f:
             f.write(contents)
     except Exception:
@@ -34,19 +49,16 @@ def colorize(
     finally:
         img_file.file.close()
 
-    image, prediction = artist.colorize(img_filename, 3)
-    results = artist.prepare_results(image, prediction)
-    # result_image = artist.visualize(image, prediction, original_size=False, inline=3)
+    original_image, colorized_images = artist.colorize(img_filename, 3)
+    original_image_str = __img_array_to_b64string(original_image)
 
-    for name, image in results.items():
-        buffered = BytesIO()
-        image.save(buffered, format="JPEG")
-        img_str = base64.b64encode(buffered.getvalue())
-        results[f'{name}_str'] = img_str
+    image_strings = []
+
+    for img_array in colorized_images:
+        image_strings.append(__img_array_to_b64string(img_array))
 
     return ColorizedImage(
-        image_original=results['image_original_str'],
-        image_colorized_v1=results['image_colorized_v1_str'],
-        image_colorized_v2=results['image_colorized_v2_str'],
-        image_colorized_v3=results['image_colorized_v3_str']
+        original_image=original_image_str,
+        images=image_strings
     )
+

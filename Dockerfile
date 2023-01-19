@@ -10,8 +10,11 @@ RUN apt-get install ffmpeg libsm6 libxext6 -y
 
 RUN pip3 install -U pip
 
-COPY . .
+COPY requirements.txt requirements.txt
 
+RUN pip3 install --upgrade pip setuptools wheel
 RUN pip3 install -r requirements.txt
+
+COPY . .
 
 CMD ["python3", "main.py"]
