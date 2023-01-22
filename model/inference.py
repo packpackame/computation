@@ -58,16 +58,8 @@ class Artist:
         grayscale_image = self.preprocess_image(original_image)
         grayscale_image = torch.cat([grayscale_image] * num_variants, dim=0)
 
-        width = 1024
-        height = int(original_image.shape[0] / original_image.shape[1] * width)
-
         prediction, prediction_step = self.model.restoration(grayscale_image.to(self.device), sample_num=4)
         prediction = (prediction + 1) * 255 / 2
-
-        grayscale_image = grayscale_image.cpu().numpy()
-        grayscale_image = (grayscale_image[0, 0] + 1) * 255 / 2
-        grayscale_image = grayscale_image.astype("uint8")
-        grayscale_image = cv2.resize(grayscale_image, (width, height))
 
         prediction = prediction.cpu().numpy()
         prediction = np.moveaxis(prediction, 1, -1)
@@ -75,13 +67,13 @@ class Artist:
         prediction = np.concatenate([
             resize_colorized(
                 prediction[i],
-                grayscale_image[:, :, np.newaxis]
+                cv2.cvtColor(original_image, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
             )[np.newaxis, :, :, :]
             for i
             in range(num_variants)
         ], axis=0)
 
-        return grayscale_image, prediction
+        return original_image, prediction
 # >>>>>>> SeparateImages
 
     @staticmethod
