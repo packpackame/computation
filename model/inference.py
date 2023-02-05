@@ -3,6 +3,7 @@ import os
 import numpy as np
 from PIL import Image
 from .system import Reconstructor
+from typing import Tuple
 import torch
 
 
@@ -47,25 +48,45 @@ class Artist:
         gray = torch.tensor(gray / (255.0 * 0.5) - 1, dtype=torch.float).unsqueeze(0)
         return gray
 
-    def colorize(self, image_path, N_variants):
-        image = read_image(image_path)
-        gray = self.preprocess_image(image)
-        gray = torch.cat([gray] * N_variants, dim=0)
-        pred, pred_steps = self.model.restoration(gray.to(self.device), sample_num=4)
-        pred = (pred + 1) * 255 / 2
-        pred_steps = (pred_steps + 1) * 255 / 2
-        return image, pred.cpu().numpy(), pred_steps.cpu().numpy()
+    def colorize(
+            self,
+            image_path: str,
+            num_variants: int
+    ) -> Tuple[np.ndarray, np.ndarray]:
+
+        original_image = read_image(image_path)
+        grayscale_image = self.preprocess_image(original_image)
+        grayscale_image = torch.cat([grayscale_image] * num_variants, dim=0)
+
+        prediction, prediction_step = self.model.restoration(grayscale_image.to(self.device), sample_num=4)
+        prediction = (prediction + 1) * 255 / 2
+
+        prediction = prediction.cpu().numpy()
+        prediction = np.moveaxis(prediction, 1, -1)
+        prediction = prediction.astype("uint8")
+        prediction = np.concatenate([
+            resize_colorized(
+                prediction[i],
+                cv2.cvtColor(original_image, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
+            )[np.newaxis, :, :, :]
+            for i
+            in range(num_variants)
+        ], axis=0)
+
+        return original_image, prediction
+# >>>>>>> SeparateImages
 
     @staticmethod
     def visualize(image, pred, offset=5, original_size=True, inline=3):
-        N_variants = pred.shape[0]
+
+        num_variants = pred.shape[0]
         if not original_size:
             width = 1024
             height = int(image.shape[0] / image.shape[1] * width)
             image = cv2.resize(image, (width, height))
         gray = cv2.cvtColor(image, cv2.COLOR_RGB2GRAY)[:, :, np.newaxis]
         images = [Image.fromarray(image)]
-        for i in range(N_variants):
+        for i in range(num_variants):
             imgc = pred[i]
             imgc = np.moveaxis(imgc, 0, 2).astype('uint8')
             imgc = resize_colorized(imgc, gray)
